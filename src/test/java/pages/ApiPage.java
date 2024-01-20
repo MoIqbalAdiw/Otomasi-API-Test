@@ -1,0 +1,84 @@
+package pages;
+
+import helper.Endpoint;
+import helper.Utility;
+import io.restassured.module.jsv.JsonSchemaValidator;
+import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+//import org.junit.jupiter.params.shadow.com.univocity.parsers.conversions.IntegerConversion;
+
+import java.io.File;
+import java.util.List;
+
+import static helper.Models.*;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ApiPage {
+    String setURL, global_id;
+    Response res;
+    public void prepareUrlFor(String url){
+        switch (url) {
+            case "GET_LIST_USERS" -> setURL = Endpoint.GET_LIST_USERS;
+            case "CREATE_NEW_USERS" -> setURL = Endpoint.CREATE_NEW_USERS;
+            case "DELETE_USERS" -> setURL = Endpoint.DELETE_USERS;
+            default -> System.out.println("input right url");
+        }
+//        System.out.println("endpoint siap pakai adalah : "+ setURL);
+    }
+    public void hitApiGetListUsers(){
+        res = getListUsers(setURL);
+//        System.out.println(res.getBody().asString());
+    }
+    public void hitApiPostCreateUser(){
+        res = postCreateUser(setURL);
+//        System.out.println(res.getBody().asString());
+    }
+    public void validationStatusCodeIsEquals(int status_code){
+        assertThat(res.statusCode()).isEqualTo(status_code);
+    }
+    public void validationResponseBodyGetListUsers(){
+        List<Object> id = res.jsonPath().getList("id");
+        List<Object> name = res.jsonPath().getList("name");
+        List<Object> email = res.jsonPath().getList("email");
+        List<Object> gender = res.jsonPath().getList("gender");
+        List<Object> status = res.jsonPath().getList("status");
+
+        // System.out.println(name.get(0)); //cek-cek data
+
+        assertThat(id.get(0)).isNotNull();
+        assertThat(name.get(0)).isNotNull();
+        assertThat(email.get(0)).isNotNull();
+        assertThat(gender.get(0)).isIn("female", "male");
+        assertThat(status.get(0)).isIn("active","inactive");
+
+    }
+    public void validationResponseJasonWithJSONScheme(String filename){
+        File JSONFile = Utility.getJsonSchemaFile(filename);
+        res.then().assertThat().body(JsonSchemaValidator.matchesJsonSchema(JSONFile));
+    }
+    public void validationResponseBodyCreateUser(){
+        JsonPath jsonPathEvaluator = res.jsonPath();
+        Integer noid = jsonPathEvaluator.get("id");
+        String name = jsonPathEvaluator.get("name");
+        String email = jsonPathEvaluator.get("email");
+        String gender = jsonPathEvaluator.get("gender");
+        String status = jsonPathEvaluator.get("status");
+
+        assertThat(noid).isNotNull();
+        assertThat(name).isNotNull();
+        assertThat(email).isNotNull();
+        assertThat(gender).isIn("female", "male");
+        assertThat(status).isIn("active","inactive");
+
+        global_id = Integer.toString(noid);
+    }
+    public void hitApiDeleteUser(){
+        res = deleteUser(setURL, global_id);
+    }
+    public void hitApiUpdateUser(){
+        res = updateUser(setURL, global_id);
+    }
+    public void validationResponseBodyUpdateUser(){
+        System.out.println(res.getBody().asString());
+    }
+}
